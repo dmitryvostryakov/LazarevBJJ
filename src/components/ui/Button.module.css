@@ -1,0 +1,55 @@
+.button {
+  display: inline-block;
+  padding: 0.875rem 2.25rem;
+  font-family: var(--font-body, 'Inter', sans-serif);
+  font-weight: 700;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  text-decoration: none;
+  text-align: center;
+  cursor: pointer;
+  background: transparent;
+  border-width: 2px;
+  border-style: solid;
+  border-radius: 2px;
+  transition: box-shadow 0.25s ease, transform 0.15s ease, background-color 0.25s ease;
+}
+
+/* Cyan variant */
+.cyan {
+  color: var(--neon-cyan, #00d4ff);
+  border-color: var(--neon-cyan, #00d4ff);
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.4), inset 0 0 8px rgba(0, 212, 255, 0.1);
+}
+
+.cyan:hover {
+  background-color: rgba(0, 212, 255, 0.1);
+  box-shadow: 0 0 16px rgba(0, 212, 255, 0.6), 0 0 32px rgba(0, 212, 255, 0.3),
+    inset 0 0 12px rgba(0, 212, 255, 0.15);
+  transform: scale(1.05);
+}
+
+.cyan:active {
+  transform: scale(0.97);
+  box-shadow: 0 0 6px rgba(0, 212, 255, 0.5), inset 0 0 6px rgba(0, 212, 255, 0.2);
+}
+
+/* Pink variant */
+.pink {
+  color: var(--neon-pink, #ff0066);
+  border-color: var(--neon-pink, #ff0066);
+  box-shadow: 0 0 8px rgba(255, 0, 102, 0.4), inset 0 0 8px rgba(255, 0, 102, 0.1);
+}
+
+.pink:hover {
+  background-color: rgba(255, 0, 102, 0.1);
+  box-shadow: 0 0 16px rgba(255, 0, 102, 0.6), 0 0 32px rgba(255, 0, 102, 0.3),
+    inset 0 0 12px rgba(255, 0, 102, 0.15);
+  transform: scale(1.05);
+}
+
+.pink:active {
+  transform: scale(0.97);
+  box-shadow: 0 0 6px rgba(255, 0, 102, 0.5), inset 0 0 6px rgba(255, 0, 102, 0.2);
+}

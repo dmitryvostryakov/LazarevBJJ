@@ -1,0 +1,134 @@
+.section {
+  padding: 80px clamp(1rem, 3vw, 3rem);
+  background: var(--bg-secondary, #1a1a2e);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.group {
+  margin-bottom: 48px;
+}
+
+.group:last-of-type {
+  margin-bottom: 40px;
+}
+
+.groupTitle {
+  font-family: var(--font-heading, 'Bebas Neue', sans-serif);
+  font-size: 1.75rem;
+  color: var(--text-primary, #ffffff);
+  letter-spacing: 0.05em;
+  margin: 0 0 20px 0;
+}
+
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.card {
+  background: var(--bg-card, #16213e);
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid transparent;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+  border-color: var(--neon-pink, #ff0066);
+  box-shadow: 0 0 16px rgba(255, 0, 102, 0.3);
+}
+
+.day {
+  font-family: var(--font-heading, 'Bebas Neue', sans-serif);
+  font-size: 1.35rem;
+  color: var(--neon-pink, #ff0066);
+}
+
+.time {
+  font-family: var(--font-body, 'Inter', sans-serif);
+  font-size: 1.1rem;
+  color: var(--text-primary, #ffffff);
+  font-weight: 600;
+}
+
+.location {
+  font-family: var(--font-body, 'Inter', sans-serif);
+  font-size: 0.85rem;
+  color: var(--text-secondary, #b0b0cc);
+}
+
+.gymsSection {
+  margin-top: 48px;
+}
+
+.gymsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.gymCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 28px;
+  background: var(--bg-card, #16213e);
+  border-radius: 12px;
+  border: 1px solid transparent;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.gymCard:hover {
+  border-color: var(--neon-cyan, #00d4ff);
+  box-shadow: 0 0 16px rgba(0, 212, 255, 0.3);
+}
+
+.pinIcon {
+  color: var(--neon-pink, #ff0066);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.gymInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gymName {
+  font-family: var(--font-heading, 'Bebas Neue', sans-serif);
+  font-size: 1.5rem;
+  color: var(--neon-cyan, #00d4ff);
+  letter-spacing: 0.05em;
+}
+
+.gymAddress {
+  font-family: var(--font-body, 'Inter', sans-serif);
+  font-size: 1rem;
+  color: var(--text-primary, #ffffff);
+  font-weight: 500;
+}
+
+.gymDesc {
+  font-family: var(--font-body, 'Inter', sans-serif);
+  font-size: 0.85rem;
+  color: var(--text-secondary, #b0b0cc);
+}
+
+@media (max-width: 768px) {
+  .cardGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .gymsGrid {
+    grid-template-columns: 1fr;
+  }
+}

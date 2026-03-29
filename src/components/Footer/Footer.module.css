@@ -1,0 +1,42 @@
+.footer {
+  background: var(--bg-secondary);
+  padding: 32px;
+  text-align: center;
+  border-top: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+.socials {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.socialLink {
+  color: var(--text-secondary);
+  transition: color 0.2s;
+}
+
+.socialLink:hover {
+  color: var(--neon-cyan);
+}
+
+.socialIcon {
+  width: 20px;
+  height: 20px;
+}
+
+.copyright {
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: 14px;
+  margin: 0 0 12px;
+}
+
+.vibes {
+  font-family: var(--font-display);
+  color: var(--neon-cyan);
+  opacity: 0.4;
+  font-size: 12px;
+  margin: 0;
+}

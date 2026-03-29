@@ -1,0 +1,83 @@
+@font-face {
+  font-family: 'Pricedown';
+  src: url('./assets/fonts/Pricedown.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --bg-primary: #0a0a1a;
+  --bg-secondary: #1a1a2e;
+  --bg-card: #16213e;
+  --neon-cyan: #00d4ff;
+  --neon-pink: #ff0066;
+  --neon-yellow: #ffd700;
+  --text-primary: #ffffff;
+  --text-secondary: #b0b0cc;
+  --font-display: 'Pricedown', Impact, sans-serif;
+  --font-heading: 'Bebas Neue', Impact, sans-serif;
+  --font-body: 'Inter', sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+input, textarea {
+  font-family: inherit;
+}
+
+.gta-photo {
+  filter: contrast(1.6) saturate(1.8) brightness(0.9) hue-rotate(-10deg) url(#gta-posterize);
+}
+
+.gta-photo-hero {
+  filter: contrast(1.8) saturate(2.0) brightness(0.85) hue-rotate(-5deg) url(#gta-posterize);
+}
+
+.fade-in {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.fade-in.visible {
+  opacity: 1;
+  transform: translateY(0);
+}

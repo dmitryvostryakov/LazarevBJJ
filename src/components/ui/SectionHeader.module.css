@@ -1,0 +1,50 @@
+.wrapper {
+  text-align: center;
+  transform: rotate(-2deg);
+  margin-bottom: 2rem;
+}
+
+.title {
+  font-family: var(--font-heading, 'Bebas Neue', sans-serif);
+  text-transform: uppercase;
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  color: var(--text-primary, #ffffff);
+  letter-spacing: 0.05em;
+  margin: 0 0 0.5rem 0;
+  line-height: 1.1;
+}
+
+.underline {
+  height: 5px;
+  width: 120px;
+  margin: 0 auto;
+  border-radius: 2px;
+}
+
+/* Color variants */
+.cyan .title {
+  text-shadow: 0 0 10px var(--neon-cyan, #00d4ff);
+}
+
+.cyan .underline {
+  background: var(--neon-cyan, #00d4ff);
+  box-shadow: 0 0 12px var(--neon-cyan, #00d4ff), 0 0 24px rgba(0, 212, 255, 0.4);
+}
+
+.pink .title {
+  text-shadow: 0 0 10px var(--neon-pink, #ff0066);
+}
+
+.pink .underline {
+  background: var(--neon-pink, #ff0066);
+  box-shadow: 0 0 12px var(--neon-pink, #ff0066), 0 0 24px rgba(255, 0, 102, 0.4);
+}
+
+.yellow .title {
+  text-shadow: 0 0 10px var(--neon-yellow, #ffd700);
+}
+
+.yellow .underline {
+  background: var(--neon-yellow, #ffd700);
+  box-shadow: 0 0 12px var(--neon-yellow, #ffd700), 0 0 24px rgba(255, 215, 0, 0.4);
+}
