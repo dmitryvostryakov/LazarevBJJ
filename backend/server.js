@@ -3,8 +3,14 @@ import express from 'express';
 import cors from 'cors';
 import altchaExpress from 'altcha-lib/frameworks/express';
 import { deriveKey as pbkdf2DeriveKey } from 'altcha-lib/algorithms/pbkdf2';
-import { getSlotDetails, createBooking, GYMS } from './bookings.js';
-import { initBot, notifyNewBooking, stopBot } from './bot.js';
+import { getSlotDetails, createBooking, getBookingByToken, cancelBooking, GYMS } from './bookings.js';
+import { initBot, notifyNewBooking, notifyClientCancelled, stopBot } from './bot.js';
+import { deleteCalendarEvent } from './calendar.js';
+
+function publicBooking(b) {
+  const { cancel_token, client_chat_id, ...rest } = b;
+  return rest;
+}
 
 process.on('unhandledRejection', (err) => {
   console.error('Unhandled rejection (backend stays up):', err);
@@ -70,6 +76,37 @@ app.post('/api/bookings', altcha.middleware({ throwOnFailure: false }), async (r
     }
     if (err.code === 'GROUP_SIZE_REQUIRED') {
       return res.status(400).json({ error: 'groupSize is required to start a new group session' });
+    }
+    console.error(err);
+    res.status(500).json({ error: 'internal error' });
+  }
+});
+
+app.get('/api/bookings/:id', (req, res) => {
+  const booking = getBookingByToken(Number(req.params.id), req.query.token);
+  if (!booking) return res.status(404).json({ error: 'not found' });
+  res.json({ booking: publicBooking(booking) });
+});
+
+app.post('/api/bookings/:id/cancel', async (req, res) => {
+  const id = Number(req.params.id);
+  const { token } = req.body || {};
+  const before = getBookingByToken(id, token);
+  if (!before) return res.status(404).json({ error: 'not found' });
+  try {
+    const booking = cancelBooking(id, token);
+    if (before.calendar_event_id) {
+      try {
+        await deleteCalendarEvent(before.calendar_event_id);
+      } catch (err) {
+        console.error('Calendar event deletion failed:', err.message);
+      }
+    }
+    notifyClientCancelled(booking);
+    res.json({ booking: publicBooking(booking) });
+  } catch (err) {
+    if (err.code === 'ALREADY_FINAL') {
+      return res.status(409).json({ error: 'booking already finalized' });
     }
     console.error(err);
     res.status(500).json({ error: 'internal error' });

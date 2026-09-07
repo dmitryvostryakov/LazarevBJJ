@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import 'altcha';
 import SectionHeader from '../ui/SectionHeader';
 import Button from '../ui/Button';
-import { fetchAvailability, createBooking, API_BASE } from '../../utils/api';
+import { fetchAvailability, createBooking, API_BASE, BOOKING_BOT_USERNAME } from '../../utils/api';
 import {
   FORMATS,
   AUDIENCES,
@@ -50,6 +50,8 @@ export default function ContactForm() {
   const [errors, setErrors] = useState({});
   const [status, setStatus] = useState('idle');
   const [captchaValue, setCaptchaValue] = useState(null);
+  const [confirmedBooking, setConfirmedBooking] = useState(null);
+  const [linkCopied, setLinkCopied] = useState(false);
   const altchaRef = useRef(null);
 
   // Slots the current format can actually use: personal only wants fully open
@@ -144,7 +146,7 @@ export default function ContactForm() {
 
     setStatus('sending');
     try {
-      await createBooking({
+      const { booking } = await createBooking({
         gym,
         date,
         time,
@@ -157,6 +159,8 @@ export default function ContactForm() {
         altcha: captchaValue,
       });
       setStatus('success');
+      setConfirmedBooking(booking);
+      setLinkCopied(false);
       setFormData({ name: '', phone: '', message: '' });
       const refreshed = await fetchAvailability(gym, date);
       setSlots(refreshed);
@@ -178,6 +182,27 @@ export default function ContactForm() {
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
+    }
+  }
+
+  function statusLink(booking) {
+    const url = new URL(window.location.href);
+    url.hash = '';
+    url.search = `?booking=${booking.id}&token=${booking.cancel_token}`;
+    return url.toString();
+  }
+
+  function telegramLink(booking) {
+    return `https://t.me/${BOOKING_BOT_USERNAME}?start=${booking.id}_${booking.cancel_token}`;
+  }
+
+  async function copyStatusLink() {
+    if (!confirmedBooking) return;
+    try {
+      await navigator.clipboard.writeText(statusLink(confirmedBooking));
+      setLinkCopied(true);
+    } catch {
+      setLinkCopied(false);
     }
   }
 
@@ -385,10 +410,35 @@ export default function ContactForm() {
           {status === 'sending' ? 'ОТПРАВКА...' : 'ЗАБРОНИРОВАТЬ ТРЕНИРОВКУ'}
         </Button>
 
-        {status === 'success' && (
-          <p className={styles.statusSuccess}>
-            Заявка отправлена! Никита подтвердит время в течение дня.
-          </p>
+        {status === 'success' && confirmedBooking && (
+          <div className={styles.confirmBox}>
+            <p className={styles.statusSuccess} style={{ margin: 0 }}>
+              Заявка отправлена! Никита подтвердит время в течение дня.
+            </p>
+            <a
+              className={styles.confirmLink}
+              href={telegramLink(confirmedBooking)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Открыть в Telegram — уведомим о подтверждении
+            </a>
+            <div className={styles.confirmLinkRow}>
+              <input
+                className={`${styles.input} ${styles.confirmLinkInput}`}
+                type="text"
+                readOnly
+                value={statusLink(confirmedBooking)}
+                onFocus={(e) => e.target.select()}
+              />
+              <button type="button" className={styles.confirmCopyBtn} onClick={copyStatusLink}>
+                {linkCopied ? 'Скопировано' : 'Копировать'}
+              </button>
+            </div>
+            <span className={styles.slotHint}>
+              По ссылке можно проверить статус заявки и отменить её без Telegram.
+            </span>
+          </div>
         )}
         {status === 'slot-taken' && (
           <p className={styles.statusError}>

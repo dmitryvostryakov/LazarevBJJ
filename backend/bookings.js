@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { db } from './db.js';
 import { getBusyRanges } from './calendar.js';
 
@@ -91,12 +92,12 @@ export async function getSlotDetails(gym, date) {
 }
 
 const insertStmt = db.prepare(`
-  INSERT INTO bookings (gym, date, time, format, audience, group_size, name, phone, message, price, status)
-  VALUES (@gym, @date, @time, @format, @audience, @groupSize, @name, @phone, @message, @price, 'pending')
+  INSERT INTO bookings (gym, date, time, format, audience, group_size, name, phone, message, price, status, cancel_token)
+  VALUES (@gym, @date, @time, @format, @audience, @groupSize, @name, @phone, @message, @price, 'pending', @cancelToken)
 `);
 
 export const createBooking = db.transaction((rawPayload) => {
-  const payload = { message: null, ...rawPayload };
+  const payload = { message: null, ...rawPayload, cancelToken: crypto.randomBytes(16).toString('hex') };
   const rows = activeAtSlotStmt.all(payload.gym, payload.date, payload.time);
 
   if (payload.format === 'personal') {
@@ -179,4 +180,33 @@ export function blockSlot(gym, date, time, reason) {
 
 export function unblockSlot(gym, date, time) {
   return db.prepare('DELETE FROM blocked_slots WHERE gym = ? AND date = ? AND time = ?').run(gym, date, time);
+}
+
+// Public lookup for the client-facing status link/bot — requires the booking's
+// own cancel_token, so knowing an id alone reveals nothing.
+export function getBookingByToken(id, token) {
+  if (!token) return null;
+  const booking = getBooking(id);
+  if (!booking || booking.cancel_token !== token) return null;
+  return booking;
+}
+
+export function cancelBooking(id, token) {
+  const booking = getBookingByToken(id, token);
+  if (!booking) {
+    const err = new Error('NOT_FOUND');
+    err.code = 'NOT_FOUND';
+    throw err;
+  }
+  if (!['pending', 'confirmed'].includes(booking.status)) {
+    const err = new Error('ALREADY_FINAL');
+    err.code = 'ALREADY_FINAL';
+    throw err;
+  }
+  return setBookingStatus(id, 'cancelled', null);
+}
+
+export function setClientChatId(id, chatId) {
+  db.prepare('UPDATE bookings SET client_chat_id = ? WHERE id = ?').run(String(chatId), id);
+  return getBooking(id);
 }

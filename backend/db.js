@@ -43,3 +43,13 @@ db.exec(`
     UNIQUE (gym, date, time)
   );
 `);
+
+// Columns added after the initial release — existing DB files predate them,
+// so add them if missing instead of relying on CREATE TABLE IF NOT EXISTS.
+const existingColumns = new Set(db.prepare('PRAGMA table_info(bookings)').all().map((c) => c.name));
+if (!existingColumns.has('cancel_token')) {
+  db.exec('ALTER TABLE bookings ADD COLUMN cancel_token TEXT');
+}
+if (!existingColumns.has('client_chat_id')) {
+  db.exec('ALTER TABLE bookings ADD COLUMN client_chat_id TEXT');
+}

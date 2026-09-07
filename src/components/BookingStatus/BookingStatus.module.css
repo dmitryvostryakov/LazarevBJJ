@@ -1,0 +1,110 @@
+.section {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px clamp(1rem, 3vw, 3rem);
+}
+
+.card {
+  max-width: 460px;
+  width: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--neon-cyan);
+  border-radius: 12px;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.title {
+  font-family: var(--font-heading);
+  font-size: 24px;
+  color: var(--text-primary);
+  margin: 0;
+  text-align: center;
+}
+
+.hint {
+  color: var(--text-secondary);
+  text-align: center;
+  font-family: var(--font-body);
+}
+
+.error {
+  color: #ff4444;
+  text-align: center;
+  font-family: var(--font-body);
+  font-size: 14px;
+}
+
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.badge {
+  align-self: center;
+  padding: 8px 18px;
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 1px solid var(--text-secondary);
+}
+
+.badge_pending {
+  border-color: #ffcc00;
+  color: #ffcc00;
+}
+
+.badge_confirmed {
+  border-color: #00ff88;
+  color: #00ff88;
+}
+
+.badge_declined,
+.badge_cancelled {
+  border-color: #ff4444;
+  color: #ff4444;
+}
+
+.list {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 12px;
+  margin: 0;
+  font-family: var(--font-body);
+}
+
+.list dt {
+  color: var(--text-secondary);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  align-self: center;
+}
+
+.list dd {
+  color: var(--text-primary);
+  margin: 0;
+  font-size: 14px;
+}
+
+.backLink {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: 13px;
+  cursor: pointer;
+  text-align: center;
+  padding: 0;
+}
+
+.backLink:hover {
+  color: var(--neon-cyan);
+}

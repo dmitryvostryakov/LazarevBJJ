@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Navbar from './components/Navbar/Navbar'
 import Hero from './components/Hero/Hero'
 import About from './components/About/About'
@@ -7,8 +7,16 @@ import Gallery from './components/Gallery/Gallery'
 import Reviews from './components/Reviews/Reviews'
 import ContactForm from './components/ContactForm/ContactForm'
 import Footer from './components/Footer/Footer'
+import BookingStatus from './components/BookingStatus/BookingStatus'
 
 function App() {
+  const [bookingParams, setBookingParams] = useState(() => {
+    const params = new URLSearchParams(window.location.search)
+    const booking = params.get('booking')
+    const token = params.get('token')
+    return booking && token ? { id: booking, token } : null
+  })
+
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -27,6 +35,19 @@ function App() {
 
     return () => observer.disconnect()
   }, [])
+
+  if (bookingParams) {
+    return (
+      <BookingStatus
+        id={bookingParams.id}
+        token={bookingParams.token}
+        onClose={() => {
+          window.history.replaceState({}, '', window.location.pathname)
+          setBookingParams(null)
+        }}
+      />
+    )
+  }
 
   return (
     <>
