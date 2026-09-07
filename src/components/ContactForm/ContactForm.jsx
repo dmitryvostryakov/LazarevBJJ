@@ -1,13 +1,83 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import SectionHeader from '../ui/SectionHeader';
 import Button from '../ui/Button';
-import { sendToTelegram } from '../../utils/telegram';
+import { fetchAvailability, createBooking } from '../../utils/api';
+import {
+  FORMATS,
+  AUDIENCES,
+  GROUP_SIZES,
+  GYMS,
+  getPrice,
+  getAvailableDates,
+} from '../../data/booking';
 import styles from './ContactForm.module.css';
 
+const availableDates = getAvailableDates();
+
 export default function ContactForm() {
+  const [format, setFormat] = useState(FORMATS[0].id);
+  const [audience, setAudience] = useState(AUDIENCES[FORMATS[0].id][0].id);
+  const [groupSize, setGroupSize] = useState(GROUP_SIZES[0]);
+  const [gym, setGym] = useState(GYMS[0].id);
+  const [date, setDate] = useState(availableDates[0].value);
+  const [time, setTime] = useState('');
+  const [slots, setSlots] = useState([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [slotsError, setSlotsError] = useState(false);
   const [formData, setFormData] = useState({ name: '', phone: '', message: '' });
   const [errors, setErrors] = useState({});
   const [status, setStatus] = useState('idle');
+
+  // Slots the current format can actually use: personal only wants fully open
+  // slots, group wants both open (start a new session) and joinable (room left).
+  const usableSlots = useMemo(
+    () => slots.filter((s) => format === 'personal' ? s.status === 'open' : true),
+    [slots, format]
+  );
+  const selectedSlot = useMemo(
+    () => usableSlots.find((s) => s.time === time) || null,
+    [usableSlots, time]
+  );
+  const joiningGroup = format === 'group' && selectedSlot?.status === 'group_joinable';
+
+  const price = useMemo(() => {
+    if (joiningGroup) return selectedSlot.pricePerHead;
+    return getPrice({ format, audience, groupSize });
+  }, [joiningGroup, selectedSlot, format, audience, groupSize]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setSlotsLoading(true);
+    setSlotsError(false);
+    fetchAvailability(gym, date)
+      .then((availableSlots) => {
+        if (cancelled) return;
+        setSlots(availableSlots);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setSlots([]);
+        setSlotsError(true);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setSlotsLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [gym, date]);
+
+  // Keep the selected time valid whenever the usable slot list changes
+  // (new gym/date loaded, or format switched between personal/group).
+  useEffect(() => {
+    if (!usableSlots.some((s) => s.time === time)) {
+      setTime(usableSlots[0]?.time || '');
+    }
+  }, [usableSlots]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function handleFormatChange(newFormat) {
+    setFormat(newFormat);
+    setAudience(AUDIENCES[newFormat][0].id);
+  }
 
   function validate() {
     const newErrors = {};
@@ -25,14 +95,27 @@ export default function ContactForm() {
     const newErrors = validate();
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
+    if (!time) return;
 
     setStatus('sending');
     try {
-      await sendToTelegram(formData);
+      await createBooking({
+        gym,
+        date,
+        time,
+        format,
+        audience,
+        groupSize: format === 'group' && !joiningGroup ? groupSize : null,
+        name: formData.name,
+        phone: formData.phone,
+        message: formData.message,
+      });
       setStatus('success');
       setFormData({ name: '', phone: '', message: '' });
-    } catch {
-      setStatus('error');
+      const refreshed = await fetchAvailability(gym, date);
+      setSlots(refreshed);
+    } catch (err) {
+      setStatus(err.code === 'SLOT_TAKEN' ? 'slot-taken' : 'error');
     }
   }
 
@@ -49,6 +132,125 @@ export default function ContactForm() {
       <SectionHeader title="ЗАПИСАТЬСЯ" color="pink" />
 
       <form className={styles.form} onSubmit={handleSubmit} noValidate>
+        <div className={styles.field}>
+          <label className={styles.label}>Формат тренировки</label>
+          <div className={styles.toggleGroup}>
+            {FORMATS.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                className={`${styles.toggle} ${format === f.id ? styles.toggleActive : ''}`}
+                onClick={() => handleFormatChange(f.id)}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className={styles.field}>
+          <label className={styles.label}>Группа</label>
+          <div className={styles.toggleGroup}>
+            {AUDIENCES[format].map((a) => (
+              <button
+                key={a.id}
+                type="button"
+                className={`${styles.toggle} ${audience === a.id ? styles.toggleActive : ''}`}
+                onClick={() => setAudience(a.id)}
+              >
+                {a.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {format === 'group' && !joiningGroup && (
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="booking-group-size">Количество участников</label>
+            <select
+              id="booking-group-size"
+              className={styles.input}
+              value={groupSize}
+              onChange={(e) => setGroupSize(Number(e.target.value))}
+            >
+              {GROUP_SIZES.map((size) => (
+                <option key={size} value={size}>{size} человека(-ек)</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {joiningGroup && (
+          <div className={styles.field}>
+            <p className={styles.groupJoinNote}>
+              Вы присоединяетесь к группе {selectedSlot.joined}/{selectedSlot.groupSize}
+              {' '}— осталось {selectedSlot.remaining} {selectedSlot.remaining === 1 ? 'место' : 'места'}.
+              Цена зафиксирована организатором группы.
+            </p>
+          </div>
+        )}
+
+        <div className={styles.row}>
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="booking-gym">Зал</label>
+            <select
+              id="booking-gym"
+              className={styles.input}
+              value={gym}
+              onChange={(e) => setGym(e.target.value)}
+            >
+              {GYMS.map((g) => (
+                <option key={g.id} value={g.id}>{g.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="booking-date">Дата</label>
+            <select
+              id="booking-date"
+              className={styles.input}
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+            >
+              {availableDates.map((d) => (
+                <option key={d.value} value={d.value}>{d.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="booking-time">Время</label>
+            <select
+              id="booking-time"
+              className={styles.input}
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              disabled={slotsLoading || usableSlots.length === 0}
+            >
+              {usableSlots.length === 0 && (
+                <option value="">
+                  {slotsLoading ? 'Загрузка...' : 'Нет свободных слотов'}
+                </option>
+              )}
+              {usableSlots.map((s) => (
+                <option key={s.time} value={s.time}>
+                  {s.time}
+                  {s.status === 'group_joinable' ? ` — осталось ${s.remaining} мест` : ''}
+                </option>
+              ))}
+            </select>
+            {slotsError && <span className={styles.error}>Не удалось загрузить свободное время</span>}
+          </div>
+        </div>
+
+        <div className={styles.priceBox}>
+          <span className={styles.priceLabel}>Стоимость</span>
+          <span className={styles.priceValue}>
+            {price} ₽{format === 'group' ? ' / чел.' : ''}
+          </span>
+        </div>
+
         <div className={styles.field}>
           <label className={styles.label} htmlFor="contact-name">Имя</label>
           <input
@@ -92,13 +294,18 @@ export default function ContactForm() {
           />
         </div>
 
-        <Button type="submit" variant="pink" disabled={status === 'sending'}>
-          {status === 'sending' ? 'ОТПРАВКА...' : 'ОТПРАВИТЬ ЗАЯВКУ'}
+        <Button type="submit" variant="pink" disabled={status === 'sending' || !time}>
+          {status === 'sending' ? 'ОТПРАВКА...' : 'ЗАБРОНИРОВАТЬ ТРЕНИРОВКУ'}
         </Button>
 
         {status === 'success' && (
           <p className={styles.statusSuccess}>
-            Заявка отправлена! Мы свяжемся с вами в ближайшее время.
+            Заявка отправлена! Никита подтвердит время в течение дня.
+          </p>
+        )}
+        {status === 'slot-taken' && (
+          <p className={styles.statusError}>
+            Это время только что забронировали. Выберите другое.
           </p>
         )}
         {status === 'error' && (

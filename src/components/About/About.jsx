@@ -5,7 +5,7 @@ import SectionHeader from '../ui/SectionHeader';
 const stats = [
   { value: '10+', label: 'ЛЕТ ОПЫТА' },
   { value: '1000+', label: 'УЧЕНИКОВ' },
-  { value: 'КОРИЧНЕВЫЙ', label: 'ПОЯС BJJ' },
+  { value: 'ЧЁРНЫЙ', label: 'ПОЯС BJJ' },
 ];
 
 export default function About() {
@@ -18,7 +18,7 @@ export default function About() {
           <div className={styles.bio}>
             <p>
               Никита Лазарев — мастер спорта по джиу-джитсу, обладатель
-              коричневого пояса BJJ, член команды Team Strela. Многократный
+              чёрного пояса BJJ, член команды Team Strela. Многократный
               победитель крупнейших турниров: золото Первенства России
               по грэпплингу, золото ACB Russia JJ и ACB World JJ.
             </p>
