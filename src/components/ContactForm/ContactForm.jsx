@@ -16,6 +16,26 @@ import styles from './ContactForm.module.css';
 const availableDates = getAvailableDates();
 const CAPTCHA_CHALLENGE_URL = `${API_BASE}/api/captcha/challenge`;
 
+// Formats any raw input into a Russian phone mask: +7 (9XX) XXX-XX-XX.
+// Handles typing from 9 (auto-prefixes +7), pasting 8XXXXXXXXXX or
+// +7XXXXXXXXXXX, and backspacing down to empty.
+function formatRuPhone(rawValue) {
+  let digits = rawValue.replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits[0] === '8' || digits[0] === '7') {
+    digits = digits.slice(1);
+  }
+  digits = digits.slice(0, 10);
+  if (!digits) return '';
+
+  let out = '+7 (' + digits.slice(0, 3);
+  if (digits.length >= 3) out += ')';
+  if (digits.length > 3) out += ' ' + digits.slice(3, 6);
+  if (digits.length > 6) out += '-' + digits.slice(6, 8);
+  if (digits.length > 8) out += '-' + digits.slice(8, 10);
+  return out;
+}
+
 export default function ContactForm() {
   const [format, setFormat] = useState(FORMATS[0].id);
   const [audience, setAudience] = useState(AUDIENCES[FORMATS[0].id][0].id);
@@ -105,8 +125,11 @@ export default function ContactForm() {
     if (!formData.name || formData.name.trim().length < 2) {
       newErrors.name = 'Введите имя (минимум 2 символа)';
     }
-    if (!formData.phone || formData.phone.trim().length === 0) {
+    const phoneDigits = formData.phone.replace(/\D/g, '');
+    if (!phoneDigits) {
       newErrors.phone = 'Введите номер телефона';
+    } else if (phoneDigits.length < 11) {
+      newErrors.phone = 'Введите полный номер телефона';
     }
     return newErrors;
   }
@@ -155,6 +178,14 @@ export default function ContactForm() {
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
+    }
+  }
+
+  function handlePhoneChange(e) {
+    const formatted = formatRuPhone(e.target.value);
+    setFormData((prev) => ({ ...prev, phone: formatted }));
+    if (errors.phone) {
+      setErrors((prev) => ({ ...prev, phone: '' }));
     }
   }
 
@@ -318,8 +349,10 @@ export default function ContactForm() {
             className={styles.input}
             type="tel"
             name="phone"
+            inputMode="numeric"
+            autoComplete="tel"
             value={formData.phone}
-            onChange={handleChange}
+            onChange={handlePhoneChange}
             required
             placeholder="+7 (___) ___-__-__"
           />
