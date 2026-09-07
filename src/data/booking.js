@@ -25,8 +25,8 @@ export const GYMS = [
 const PERSONAL_PRICE = { kids: 4000, adults: 4500 };
 
 // Mini-group session is priced as one pool split between participants.
-// 2 человека = 5500 каждый (11000 за сессию) — дальше цена за место снижается пропорционально размеру группы.
-const GROUP_SESSION_POOL = 11000;
+// 2 человека = 5500 за сессию (2750 каждый) — дальше цена за место снижается пропорционально размеру группы.
+const GROUP_SESSION_POOL = 5500;
 
 export function getPrice({ format, audience, groupSize }) {
   if (format === 'personal') {

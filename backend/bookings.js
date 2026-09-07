@@ -8,7 +8,8 @@ export const TIME_SLOTS = [
 ];
 
 const PERSONAL_PRICE = { kids: 4000, adults: 4500 };
-const GROUP_SESSION_POOL = 11000;
+// 2 человека = 5500 за сессию (2750 каждый), дальше пропорционально.
+const GROUP_SESSION_POOL = 5500;
 
 function getPersonalPrice(audience) {
   return PERSONAL_PRICE[audience] ?? PERSONAL_PRICE.adults;
