@@ -8,15 +8,11 @@ export const TIME_SLOTS = [
 ];
 
 const PERSONAL_PRICE = { kids: 4000, adults: 4500 };
-// 2 человека = 5500 за сессию (2750 каждый), дальше пропорционально.
-const GROUP_SESSION_POOL = 5500;
+// Fixed per-person rate regardless of group size (2, 3 or 4 человека).
+const GROUP_PRICE_PER_HEAD = 2750;
 
 function getPersonalPrice(audience) {
   return PERSONAL_PRICE[audience] ?? PERSONAL_PRICE.adults;
-}
-
-function getGroupPricePerHead(groupSize) {
-  return Math.ceil(GROUP_SESSION_POOL / groupSize / 50) * 50;
 }
 
 const activeAtSlotStmt = db.prepare(`
@@ -123,7 +119,7 @@ export const createBooking = db.transaction((rawPayload) => {
       throw err;
     }
     groupSize = payload.groupSize;
-    price = getGroupPricePerHead(groupSize);
+    price = GROUP_PRICE_PER_HEAD;
   }
 
   const info = insertStmt.run({ ...payload, groupSize, price });
