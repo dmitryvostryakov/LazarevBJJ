@@ -126,6 +126,66 @@ select.input {
   letter-spacing: 0.05em;
 }
 
+.slotGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 8px;
+}
+
+.slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--text-secondary);
+  border-radius: 8px;
+  padding: 10px 6px;
+  font-family: var(--font-body);
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s, box-shadow 0.2s, opacity 0.2s;
+}
+
+.slot:hover:not(:disabled) {
+  border-color: var(--neon-cyan);
+}
+
+.slotSelected {
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+}
+
+.slotJoinable {
+  border-color: var(--neon-pink);
+}
+
+.slotTaken {
+  opacity: 0.35;
+  cursor: not-allowed;
+  color: var(--text-secondary);
+}
+
+.slotTime {
+  font-size: 14px;
+  letter-spacing: 0.03em;
+}
+
+.slotBadge {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
+
+.slotHint {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin-top: 8px;
+  font-family: var(--font-body);
+}
+
 .groupJoinNote {
   background: var(--bg-card);
   border: 1px solid var(--neon-pink);

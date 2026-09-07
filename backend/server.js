@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import altchaExpress from 'altcha-lib/frameworks/express';
+import { deriveKey as pbkdf2DeriveKey } from 'altcha-lib/algorithms/pbkdf2';
 import { getSlotDetails, createBooking, GYMS } from './bookings.js';
 import { initBot, notifyNewBooking, stopBot } from './bot.js';
 
@@ -8,11 +10,27 @@ process.on('unhandledRejection', (err) => {
   console.error('Unhandled rejection (backend stays up):', err);
 });
 
+const ALTCHA_HMAC_KEY = process.env.ALTCHA_HMAC_KEY;
+if (!ALTCHA_HMAC_KEY) {
+  throw new Error('ALTCHA_HMAC_KEY is required (generate with: openssl rand -hex 32)');
+}
+
+// CappedMap tracks already-used challenges in memory so a solved captcha
+// can't be replayed across multiple booking submissions.
+const altcha = altchaExpress.create({
+  createChallengeParameters: () => ({ algorithm: 'PBKDF2/SHA-256', cost: 50_000 }),
+  deriveKey: pbkdf2DeriveKey,
+  hmacSignatureSecret: ALTCHA_HMAC_KEY,
+  store: new altchaExpress.CappedMap({ maxSize: 10_000 }),
+});
+
 const app = express();
 app.use(cors());
 app.use(express.json());
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
+
+app.get('/api/captcha/challenge', altcha.challengeHandler);
 
 app.get('/api/availability', async (req, res) => {
   const { gym, date } = req.query;
@@ -27,7 +45,10 @@ app.get('/api/availability', async (req, res) => {
   }
 });
 
-app.post('/api/bookings', (req, res) => {
+app.post('/api/bookings', altcha.middleware({ throwOnFailure: false }), async (req, res) => {
+  if (res.locals.altcha?.error) {
+    return res.status(400).json({ error: 'captcha verification failed' });
+  }
   const { gym, date, time, format, audience, groupSize, name, phone, message } = req.body || {};
   if (!gym || !date || !time || !format || !audience || !name || !phone) {
     return res.status(400).json({ error: 'missing required fields' });

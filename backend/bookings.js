@@ -29,10 +29,13 @@ function slotOverlapsBusy(date, time, busyRanges) {
   return busyRanges.some((b) => start < b.end && end > b.start);
 }
 
-// Returns per-slot details for a gym/date. Fully unavailable slots (blocked,
-// taken by a personal booking, full group, or conflicting with Nikita's own
-// calendar) are omitted entirely. Open group sessions with room are returned
-// with status 'group_joinable' so the frontend can show remaining spots.
+// Returns status for every hourly slot in a day (always the full TIME_SLOTS
+// list, so the frontend can render a grid and show occupied hours instead of
+// just hiding them). status is one of:
+//   'open'            — free, either format can start here
+//   'group_joinable'  — an open mini-group session with room left
+//   'taken'           — blocked, personal booking, full group, or conflicts
+//                       with Nikita's own calendar (no further detail leaked)
 export async function getSlotDetails(gym, date) {
   const blocked = new Set(blockedStmt.all(gym, date).map((r) => r.time));
 
@@ -45,7 +48,10 @@ export async function getSlotDetails(gym, date) {
 
   const result = [];
   for (const time of TIME_SLOTS) {
-    if (blocked.has(time)) continue;
+    if (blocked.has(time)) {
+      result.push({ time, status: 'taken' });
+      continue;
+    }
 
     const rows = activeAtSlotStmt.all(gym, date, time);
 
@@ -53,16 +59,25 @@ export async function getSlotDetails(gym, date) {
     // once we've confirmed a booking here, its own calendar event would otherwise
     // show up as "busy" and wrongly hide the slot from further group joins.
     if (rows.length === 0) {
-      if (slotOverlapsBusy(date, time, busyRanges)) continue;
+      if (slotOverlapsBusy(date, time, busyRanges)) {
+        result.push({ time, status: 'taken' });
+        continue;
+      }
       result.push({ time, status: 'open' });
       continue;
     }
-    if (rows.some((r) => r.format === 'personal')) continue;
+    if (rows.some((r) => r.format === 'personal')) {
+      result.push({ time, status: 'taken' });
+      continue;
+    }
 
     const groupSize = rows[0].group_size;
     const joined = rows.length;
     const remaining = groupSize - joined;
-    if (remaining <= 0) continue;
+    if (remaining <= 0) {
+      result.push({ time, status: 'taken' });
+      continue;
+    }
     result.push({
       time,
       status: 'group_joinable',

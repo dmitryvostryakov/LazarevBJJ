@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import 'altcha';
 import SectionHeader from '../ui/SectionHeader';
 import Button from '../ui/Button';
-import { fetchAvailability, createBooking } from '../../utils/api';
+import { fetchAvailability, createBooking, API_BASE } from '../../utils/api';
 import {
   FORMATS,
   AUDIENCES,
@@ -13,6 +14,7 @@ import {
 import styles from './ContactForm.module.css';
 
 const availableDates = getAvailableDates();
+const CAPTCHA_CHALLENGE_URL = `${API_BASE}/api/captcha/challenge`;
 
 export default function ContactForm() {
   const [format, setFormat] = useState(FORMATS[0].id);
@@ -27,6 +29,8 @@ export default function ContactForm() {
   const [formData, setFormData] = useState({ name: '', phone: '', message: '' });
   const [errors, setErrors] = useState({});
   const [status, setStatus] = useState('idle');
+  const [captchaValue, setCaptchaValue] = useState(null);
+  const altchaRef = useRef(null);
 
   // Slots the current format can actually use: personal only wants fully open
   // slots, group wants both open (start a new session) and joinable (room left).
@@ -74,6 +78,23 @@ export default function ContactForm() {
     }
   }, [usableSlots]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    const el = altchaRef.current;
+    if (!el) return undefined;
+    // ALTCHA writes the solved payload into a hidden <input name="altcha">
+    // it renders as a light-DOM child of the widget (so it works in native forms too).
+    function onStateChange(e) {
+      if (e.detail.state !== 'verified') {
+        setCaptchaValue(null);
+        return;
+      }
+      const input = el.querySelector('input[name="altcha"]');
+      setCaptchaValue(input?.value || null);
+    }
+    el.addEventListener('statechange', onStateChange);
+    return () => el.removeEventListener('statechange', onStateChange);
+  }, []);
+
   function handleFormatChange(newFormat) {
     setFormat(newFormat);
     setAudience(AUDIENCES[newFormat][0].id);
@@ -96,6 +117,7 @@ export default function ContactForm() {
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
     if (!time) return;
+    if (!captchaValue) return;
 
     setStatus('sending');
     try {
@@ -109,13 +131,22 @@ export default function ContactForm() {
         name: formData.name,
         phone: formData.phone,
         message: formData.message,
+        altcha: captchaValue,
       });
       setStatus('success');
       setFormData({ name: '', phone: '', message: '' });
       const refreshed = await fetchAvailability(gym, date);
       setSlots(refreshed);
     } catch (err) {
-      setStatus(err.code === 'SLOT_TAKEN' ? 'slot-taken' : 'error');
+      if (err.code === 'CAPTCHA_FAILED') {
+        setCaptchaValue(null);
+        altchaRef.current?.reset();
+      }
+      setStatus(
+        err.code === 'SLOT_TAKEN' ? 'slot-taken'
+          : err.code === 'CAPTCHA_FAILED' ? 'captcha-error'
+          : 'error'
+      );
     }
   }
 
@@ -219,29 +250,43 @@ export default function ContactForm() {
             </select>
           </div>
 
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="booking-time">Время</label>
-            <select
-              id="booking-time"
-              className={styles.input}
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-              disabled={slotsLoading || usableSlots.length === 0}
-            >
-              {usableSlots.length === 0 && (
-                <option value="">
-                  {slotsLoading ? 'Загрузка...' : 'Нет свободных слотов'}
-                </option>
-              )}
-              {usableSlots.map((s) => (
-                <option key={s.time} value={s.time}>
-                  {s.time}
-                  {s.status === 'group_joinable' ? ` — осталось ${s.remaining} мест` : ''}
-                </option>
-              ))}
-            </select>
-            {slotsError && <span className={styles.error}>Не удалось загрузить свободное время</span>}
+        </div>
+
+        <div className={styles.field}>
+          <label className={styles.label}>Время</label>
+          <div className={styles.slotGrid}>
+            {slots.map((s) => {
+              const usable = usableSlots.some((u) => u.time === s.time);
+              const isSelected = time === s.time;
+              const badge = s.status === 'taken'
+                ? 'занято'
+                : s.status === 'group_joinable'
+                  ? (format === 'group' ? `${s.remaining} мест` : 'группа')
+                  : null;
+              return (
+                <button
+                  key={s.time}
+                  type="button"
+                  disabled={!usable}
+                  onClick={() => usable && setTime(s.time)}
+                  className={[
+                    styles.slot,
+                    isSelected ? styles.slotSelected : '',
+                    !usable ? styles.slotTaken : '',
+                    usable && s.status === 'group_joinable' ? styles.slotJoinable : '',
+                  ].filter(Boolean).join(' ')}
+                >
+                  <span className={styles.slotTime}>{s.time}</span>
+                  {badge && <span className={styles.slotBadge}>{badge}</span>}
+                </button>
+              );
+            })}
           </div>
+          {slotsLoading && <span className={styles.slotHint}>Загрузка...</span>}
+          {!slotsLoading && slots.length === 0 && (
+            <span className={styles.slotHint}>Нет слотов на эту дату</span>
+          )}
+          {slotsError && <span className={styles.error}>Не удалось загрузить свободное время</span>}
         </div>
 
         <div className={styles.priceBox}>
@@ -294,7 +339,16 @@ export default function ContactForm() {
           />
         </div>
 
-        <Button type="submit" variant="pink" disabled={status === 'sending' || !time}>
+        <div className={styles.field}>
+          <altcha-widget
+            ref={altchaRef}
+            challenge={CAPTCHA_CHALLENGE_URL}
+            configuration='{"hideFooter":true,"hideLogo":true}'
+            style={{ '--altcha-max-width': '100%' }}
+          />
+        </div>
+
+        <Button type="submit" variant="pink" disabled={status === 'sending' || !time || !captchaValue}>
           {status === 'sending' ? 'ОТПРАВКА...' : 'ЗАБРОНИРОВАТЬ ТРЕНИРОВКУ'}
         </Button>
 
@@ -306,6 +360,11 @@ export default function ContactForm() {
         {status === 'slot-taken' && (
           <p className={styles.statusError}>
             Это время только что забронировали. Выберите другое.
+          </p>
+        )}
+        {status === 'captcha-error' && (
+          <p className={styles.statusError}>
+            Проверка "я не робот" не прошла. Попробуйте ещё раз.
           </p>
         )}
         {status === 'error' && (
